@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useKanban, type KanbanTask } from './KanbanContext';
-import { Trash2, Plus, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
+import { Trash2, Plus, ChevronUp, ChevronDown, Sparkles, Gem, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import DeleteConfirmation from './DeleteConfirmation';
 import { getRandomChallenge } from '../lib/challenges';
+import { useTheme } from './ThemeContext';
 
 
 // Helper to generate a unique id
@@ -13,12 +14,24 @@ function generateId() {
 
 const KanbanBoard: React.FC = () => {
   const { tasks, moveTask, addTask, deleteTask } = useKanban();
+  const { theme, toggleTheme } = useTheme();
 
   const [inputValue, setInputValue] = useState('');
   const [draggedTask, setDraggedTask] = useState<KanbanTask | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [userCoins, setUserCoins] = useState(() => {
+    const saved = localStorage.getItem('userGems');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [showCoinAnimation, setShowCoinAnimation] = useState(false);
+
+  // Function to update gems and save to localStorage
+  const updateUserGems = useCallback((newAmount: number) => {
+    setUserCoins(newAmount);
+    localStorage.setItem('userGems', newAmount.toString());
+  }, []);
 
 
   
@@ -87,8 +100,21 @@ const KanbanBoard: React.FC = () => {
   }, []);
 
   const handleMoveTask = useCallback((taskId: string, newColumn: 'todo' | 'in-progress' | 'done') => {
+    const task = tasks.find(t => t.id === taskId);
+    
+    // Add gems when moving challenge to "In Progress"
+    if (task && task.isChallenge && newColumn === 'in-progress' && task.column === 'todo') {
+      const gemsToAdd = task.xp || 10; // Use XP value as gems, default to 10
+      const newTotal = userCoins + gemsToAdd;
+      updateUserGems(newTotal);
+      
+      // Show coin animation
+      setShowCoinAnimation(true);
+      setTimeout(() => setShowCoinAnimation(false), 1000);
+    }
+    
     moveTask(taskId, newColumn);
-  }, [moveTask]);
+  }, [moveTask, tasks, userCoins, updateUserGems]);
 
   const getTasksByColumn = useCallback((column: 'todo' | 'in-progress' | 'done') => {
     return tasks.filter(task => task.column === column);
@@ -223,14 +249,70 @@ const KanbanBoard: React.FC = () => {
         {/* Hero Section */}
         <div className="py-4 sm:py-6 lg:py-8">
           <div className="text-center max-w-3xl mx-auto">
+            {/* Header with gems counter and theme toggle */}
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              {/* Left side - theme toggle */}
+              <motion.button
+                onClick={toggleTheme}
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center border border-white/20 dark:border-slate-700/30 hover:bg-white dark:hover:bg-slate-800"
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                whileTap={{ scale: 0.95 }}
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+              >
+                <motion.div
+                  initial={false}
+                  animate={{ rotate: theme === 'light' ? 0 : 180 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                >
+                  {theme === 'light' ? (
+                    <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 dark:text-slate-200 group-hover:text-blue-600 transition-colors duration-300" />
+                  ) : (
+                    <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 dark:text-slate-200 group-hover:text-amber-400 transition-colors duration-300" />
+                  )}
+                </motion.div>
+              </motion.button>
+              
+              {/* Center - title */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="flex-1"
+              >
+                <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-900 dark:from-slate-100 dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent tracking-tight">
+                  ChallengeBoard
+                </h1>
+              </motion.div>
+              
+              {/* Right side - gems counter */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex items-center gap-1.5 sm:gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-full shadow-md border border-white/20 dark:border-slate-700/30"
+              >
+                <motion.div
+                  animate={showCoinAnimation ? { scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] } : {}}
+                  transition={{ duration: 0.6 }}
+                >
+                  <Gem className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                </motion.div>
+                <motion.span 
+                  className="font-bold text-sm sm:text-lg text-slate-800 dark:text-slate-200"
+                  animate={showCoinAnimation ? { scale: [1, 1.2, 1] } : {}}
+                  transition={{ duration: 0.6 }}
+                >
+                  {userCoins}
+                </motion.span>
+              </motion.div>
+            </div>
+            
+            {/* Description */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <h1 className="font-bold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-900 dark:from-slate-100 dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent mb-2 tracking-tight">
-                ChallengeBoard
-              </h1>
               <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 font-medium max-w-xl mx-auto">
                 Track your personal challenges and conquer them one by one
               </p>
@@ -341,15 +423,15 @@ const KanbanBoard: React.FC = () => {
                                 )}
                                 
                                 {task.time && (
-                                  <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 rounded-full">
+                                  <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-sky-800 dark:bg-purple-900/30 dark:text-yellow-300 rounded-full">
                                     {task.time}
                                   </span>
                                 )}
                                 
                                 {task.xp && (
-                                  <span className="px-1.5 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 rounded-full flex items-center gap-1">
-                                    <span>⭐</span>
-                                    {task.xp} XP
+                                  <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 rounded-full flex items-center gap-1">
+                                    <Gem className="w-3 h-3" />
+                                    {task.xp} gems
                                   </span>
                                 )}
                               </div>
@@ -364,21 +446,7 @@ const KanbanBoard: React.FC = () => {
                               </span>
                             </div>
                             
-                            {/* Swipe hints - only on mobile */}
-                            <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 sm:hidden">
-                              {task.column === 'todo' && (
-                                <>
-                                  <span>← Delete</span>
-                                  <span>→ Progress</span>
-                                </>
-                              )}
-                              {task.column === 'in-progress' && (
-                                <>
-                                  <span>← Todo</span>
-                                  <span>→ Done</span>
-                                </>
-                              )}
-                            </div>
+
 
                             <div className="flex items-center gap-1">
                               {/* Mobile Navigation Arrows */}
