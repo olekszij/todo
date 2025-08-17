@@ -20,10 +20,7 @@ const KanbanBoard: React.FC = () => {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  // Touch drag & drop state
-  const [touchDragTask, setTouchDragTask] = useState<KanbanTask | null>(null);
-  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [isTouchDragging, setIsTouchDragging] = useState(false);
+
   
   // Swipe gesture state
   const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
@@ -210,51 +207,7 @@ const KanbanBoard: React.FC = () => {
     setDragOverColumn(null);
   }, [handleMoveTask]);
 
-  // Touch drag & drop handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>, task: KanbanTask) => {
-    const touch = e.touches[0];
-    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
-    setTouchDragTask(task);
-  }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStartPos || !touchDragTask) return;
-
-    const touch = e.touches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
-    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
-
-    // Start dragging if moved more than 10px
-    if ((deltaX > 10 || deltaY > 10) && !isTouchDragging) {
-      setIsTouchDragging(true);
-      e.preventDefault(); // Prevent scrolling
-    }
-  }, [touchStartPos, touchDragTask, isTouchDragging]);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>, columnId: string) => {
-    if (!isTouchDragging || !touchDragTask) {
-      setTouchStartPos(null);
-      setTouchDragTask(null);
-      setIsTouchDragging(false);
-      return;
-    }
-
-    // Find which column the touch ended in
-    const touch = e.changedTouches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    const columnElement = element?.closest('[data-column-id]') as HTMLElement;
-
-    if (columnElement) {
-      const targetColumnId = columnElement.dataset.columnId;
-      if (targetColumnId && targetColumnId !== columnId) {
-        handleMoveTask(touchDragTask.id, targetColumnId as 'todo' | 'in-progress' | 'done');
-      }
-    }
-
-    setTouchStartPos(null);
-    setTouchDragTask(null);
-    setIsTouchDragging(false);
-  }, [isTouchDragging, touchDragTask, handleMoveTask]);
 
 
 
@@ -298,7 +251,6 @@ const KanbanBoard: React.FC = () => {
               onDragOver={(e) => handleDragOver(e, column.id)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, column.id)}
-              onTouchEnd={(e) => handleTouchEnd(e, column.id)}
               whileHover={{ scale: dragOverColumn === column.id ? 1.02 : 1 }}
             >
               <h2 className="font-semibold text-lg sm:text-xl lg:text-2xl mb-3 text-center py-2 text-slate-800 dark:text-slate-200 transition-colors duration-300">
@@ -325,8 +277,7 @@ const KanbanBoard: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.4 }}
-                      className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all duration-300 group border border-white/20 dark:border-slate-700/50 ${draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''
-                        } ${isTouchDragging && touchDragTask?.id === task.id ? 'opacity-50 scale-95' : ''} ${swipeTask?.id === task.id ? 'ring-2 ring-blue-400 dark:ring-blue-500' : ''}`}
+                      className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all duration-300 group border border-white/20 dark:border-slate-700/50 ${draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''} ${swipeTask?.id === task.id ? 'ring-2 ring-blue-400 dark:ring-blue-500' : ''}`}
                       whileHover={{ scale: 1.01, y: -1 }}
                       whileTap={{ scale: 0.98 }}
 
