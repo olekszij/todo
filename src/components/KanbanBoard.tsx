@@ -364,18 +364,18 @@ const KanbanBoard: React.FC = () => {
                               </span>
                             </div>
                             
-                            {/* Swipe hints */}
-                            <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+                            {/* Swipe hints - only on mobile */}
+                            <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 sm:hidden">
                               {task.column === 'todo' && (
                                 <>
-                                  <span className="hidden sm:inline">← Delete</span>
-                                  <span className="hidden sm:inline">→ Progress</span>
+                                  <span>← Delete</span>
+                                  <span>→ Progress</span>
                                 </>
                               )}
                               {task.column === 'in-progress' && (
                                 <>
-                                  <span className="hidden sm:inline">← Todo</span>
-                                  <span className="hidden sm:inline">→ Done</span>
+                                  <span>← Todo</span>
+                                  <span>→ Done</span>
                                 </>
                               )}
                             </div>
