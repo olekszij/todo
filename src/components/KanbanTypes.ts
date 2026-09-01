@@ -3,13 +3,10 @@ export interface KanbanTask {
     text: string;
     column: 'todo' | 'in-progress' | 'done';
     createdAt: number;
-    // Challenge specific fields
     description?: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
-    category?: string;
-    time?: string;
-    xp?: number;
-    isChallenge?: boolean;
+    priority?: 'low' | 'medium' | 'high';
+    dueDate?: number;
+    subtasks?: { id: string; text: string; completed: boolean }[];
 }
 
 export const LOCAL_STORAGE_KEY = 'kanban-tasks'; 

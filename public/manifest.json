@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "ChallengeBoard",
+  "version": "1.0.0",
+  "description": "A secure Kanban Board that replaces your new tab page.",
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    },
+    "default_title": "ChallengeBoard"
+  }
+}
