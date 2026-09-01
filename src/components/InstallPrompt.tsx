@@ -23,9 +23,10 @@ export const InstallPrompt: React.FC = () => {
       return;
     }
 
-    // Detect iOS
+    // Detect iOS (including iPadOS 13+)
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent) || 
+      (userAgent.includes("macintosh") && navigator.maxTouchPoints > 1);
     setIsIOS(isIosDevice);
 
     if (isIosDevice) {
