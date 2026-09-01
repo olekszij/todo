@@ -6,8 +6,10 @@ import { useTheme } from './ThemeContext';
 import { useAuth } from './AuthGuard';
 import { KanbanCard } from './KanbanCard';
 import { TaskDetailsModal } from './TaskDetailsModal';
+import { InstallPrompt } from './InstallPrompt';
 import {
   DndContext,
+
   DragOverlay,
   closestCorners,
   PointerSensor,
@@ -307,6 +309,8 @@ const KanbanBoard: React.FC = () => {
           />
         )}
       </AnimatePresence>
+
+      <InstallPrompt />
     </div>
   );
 };
