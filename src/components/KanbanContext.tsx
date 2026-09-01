@@ -9,6 +9,8 @@ interface KanbanContextType {
     addTask: (task: KanbanTask) => void;
     updateTask: (taskId: string, updates: Partial<KanbanTask>) => void;
     deleteTask: (taskId: string) => void;
+    importTasks: (tasks: KanbanTask[]) => void;
+    markBackupComplete: () => void;
 }
 
 const KanbanContext = createContext<KanbanContextType | undefined>(undefined);
@@ -18,6 +20,7 @@ export type { KanbanTask };
 export const KanbanProvider = ({ children }: { children: ReactNode }) => {
     const [tasks, setTasks] = useState<KanbanTask[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const lastBackupRef = useRef<string>('[]');
 
     useEffect(() => {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
@@ -25,6 +28,7 @@ export const KanbanProvider = ({ children }: { children: ReactNode }) => {
                 if (result[LOCAL_STORAGE_KEY]) {
                     try {
                         setTasks(JSON.parse(result[LOCAL_STORAGE_KEY] as string));
+                        lastBackupRef.current = result[LOCAL_STORAGE_KEY] as string;
                     } catch {/* ignore */}
                 }
                 setIsLoading(false);
@@ -32,7 +36,10 @@ export const KanbanProvider = ({ children }: { children: ReactNode }) => {
         } else {
             try {
                 const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (stored) setTasks(JSON.parse(stored));
+                if (stored) {
+                    setTasks(JSON.parse(stored));
+                    lastBackupRef.current = stored;
+                }
             } catch {/* ignore */}
             setIsLoading(false);
         }
@@ -85,13 +92,36 @@ export const KanbanProvider = ({ children }: { children: ReactNode }) => {
         setTasks(prev => prev.filter(task => task.id !== taskId));
     }, []);
 
+    const importTasks = useCallback((importedTasks: KanbanTask[]) => {
+        setTasks(importedTasks);
+        lastBackupRef.current = JSON.stringify(importedTasks);
+    }, []);
+
+    const markBackupComplete = useCallback(() => {
+        lastBackupRef.current = JSON.stringify(tasks);
+    }, [tasks]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (JSON.stringify(tasks) !== lastBackupRef.current && tasks.length > 0) {
+                e.preventDefault();
+                e.returnValue = 'Вы не сделали бэкап последних изменений! Уверены, что хотите выйти?';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [tasks]);
+
     const contextValue = useMemo(() => ({
         tasks,
         moveTask,
         addTask,
         updateTask,
-        deleteTask
-    }), [tasks, moveTask, addTask, updateTask, deleteTask]);
+        deleteTask,
+        importTasks,
+        markBackupComplete
+    }), [tasks, moveTask, addTask, updateTask, deleteTask, importTasks, markBackupComplete]);
 
     if (isLoading) {
         return (

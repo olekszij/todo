@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useKanban, type KanbanTask } from './KanbanContext';
-import { Plus, Sun, Moon, Lock, X } from "lucide-react";
+import { Plus, Sun, Moon, Lock, X, Download, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from './ThemeContext';
 import { useAuth } from './AuthGuard';
@@ -64,7 +64,7 @@ const DroppableColumn: React.FC<{
 };
 
 const KanbanBoard: React.FC = () => {
-  const { tasks, moveTask, addTask, updateTask, deleteTask } = useKanban();
+  const { tasks, moveTask, addTask, updateTask, deleteTask, importTasks, markBackupComplete } = useKanban();
   const { theme, toggleTheme } = useTheme();
   const { lockBoard } = useAuth();
 
@@ -113,6 +113,44 @@ const KanbanBoard: React.FC = () => {
   const getTasksByColumn = useCallback((column: 'todo' | 'in-progress' | 'done') => {
     return tasks.filter(task => task.column === column);
   }, [tasks]);
+
+  const handleExport = useCallback(() => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "kanban_backup.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    markBackupComplete();
+  }, [tasks, markBackupComplete]);
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importedTasks = JSON.parse(event.target?.result as string);
+        if (Array.isArray(importedTasks)) {
+            importTasks(importedTasks);
+        } else {
+            alert("Неверный формат файла бэкапа. Ожидался массив задач.");
+        }
+      } catch (err) {
+        console.error("Failed to parse backup file", err);
+        alert("Ошибка при импорте: файл не является валидным JSON.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, [importTasks]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -176,6 +214,31 @@ const KanbanBoard: React.FC = () => {
               </motion.div>
               
               <div className="flex items-center gap-2 sm:gap-3">
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  ref={fileInputRef} 
+                  onChange={handleImport} 
+                  className="hidden" 
+                />
+                <motion.button
+                  onClick={handleImportClick}
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center border border-white/20 dark:border-slate-700/30 hover:bg-white dark:hover:bg-slate-800"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title="Import Backup"
+                >
+                  <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
+                </motion.button>
+                <motion.button
+                  onClick={handleExport}
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center border border-white/20 dark:border-slate-700/30 hover:bg-white dark:hover:bg-slate-800"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title="Export Backup"
+                >
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
+                </motion.button>
                 <motion.button
                   onClick={lockBoard}
                   className="w-10 h-10 sm:w-12 sm:h-12 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center border border-white/20 dark:border-slate-700/30 hover:bg-white dark:hover:bg-slate-800"
